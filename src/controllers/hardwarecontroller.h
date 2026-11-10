@@ -10,6 +10,7 @@
 
 class KpodDevice;
 class KpodPlusDevice;
+class MiraboxN3Device;
 class HalikeyDevice;
 class MidiDeviceWatcher;
 class PaddleKeyer;
@@ -51,6 +52,7 @@ public:
     KpodDevice *kpodDevice() const { return m_kpodDevice; }
     KpodPlusDevice *kpodPlusDevice() const { return m_kpodPlusDevice; }
     HalikeyDevice *halikeyDevice() const { return m_halikeyDevice; }
+    MiraboxN3Device *miraboxN3Device() const { return m_miraboxN3Device; }
 
     // Keyer + sidetone accessors — consumed by CwController, which is constructed right after
     // HardwareController and wires the CW graph across these (HardwareController-owned) objects.
@@ -84,9 +86,14 @@ private:
     /// (USB-002).
     void applyKpod(UsbDeviceLifecycle::Event event);
     void applyKpodPlus(UsbDeviceLifecycle::Event event);
+    void applyMiraboxN3(UsbDeviceLifecycle::Event event);
+
+    /// Send the labels of macros N3.1..N3.6 to the N3's LCD keys.
+    void pushMiraboxN3Labels();
 
     UsbDeviceLifecycle::State m_kpodState;
     UsbDeviceLifecycle::State m_kpodPlusState;
+    UsbDeviceLifecycle::State m_miraboxN3State;
 
     // Pushes the K4's keyer settings to a freshly opened KPOD+. Held rather than captured in a
     // lambda so the policy can invoke it on whichever event opens the device.
@@ -137,6 +144,9 @@ private:
 
     // HaliKey CW paddle device
     HalikeyDevice *m_halikeyDevice;
+
+    // Mirabox N3 stream controller (hidapi on its own worker thread)
+    MiraboxN3Device *m_miraboxN3Device;
 
     // Keeps macOS's MIDI device list current (see mididevicewatcher.h). Created first, so it owns
     // the process's first CoreMIDI client.

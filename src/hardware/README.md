@@ -12,6 +12,9 @@ USB / serial / MIDI device wrappers. Owned by `controllers/hardwarecontroller.cp
 - `halikeydevice.{cpp,h}` — HaliKey CW paddle. Delegates to one of 2 workers (selected by `deviceType`: 0 = V1.4 serial, 1 = MIDI); owns its own `m_workerThread`. Passes input straight through, with no debounce or queue of its own: `paddleChanged` from the V1.4 worker, and the MIDI sink set by `setMidiSink`.
 - `halikeyworkerbase.{cpp,h}` — Abstract base for the workers. Declares `paddleChanged` (V1.4) and `HaliKeyMidiSink` (MIDI). `prepareShutdown()` runs on the main thread before the join; the MIDI worker closes its port there so RtMidi's callback thread stops.
 - `kpodplususbworker.{cpp,h}` — owns the libusb context and handle for KPOD+, running all libusb I/O on its own QThread. Open/close and parameter setters are dispatched from the main thread as slots. Its pure command builders and decoders are covered by `test_kpodplususbworker`.
+- `miraboxn3protocol.h` — header-only, Qt Core only: the Mirabox N3 wire protocol (VID 0x6603, PID 0x1003, usage page 0xFFA0). Decodes input reports (LCD keys 1–6, small buttons 7–9, knob pushes 10–12, knob turns 1–3) and builds the output reports (`CRT` commands: wake, brightness, clear, JPEG key image + `STP` flush). Taken from wfview's `usbcontroller.cpp` (GPL-3.0); Mirabox publishes no protocol. Covered by `test_miraboxn3protocol`.
+- `miraboxn3worker.{cpp,h}` — `MiraboxN3Worker`, on `MiraboxN3Device::m_hidThread`. Owns the hidapi handle: 2 s `hid_enumerate` presence poll on every platform, 10 ms input poll while open, and draws the six LCD key labels (QPainter on a QImage, rotated 90°, JPEG). Reports arrival and loss; `HardwareController` decides through `usbdevicelifecycle.h` whether to open.
+- `miraboxn3device.{cpp,h}` — thin Qt façade over `MiraboxN3Worker`, same split as `KpodDevice`. Buttons become macros `N3.1`–`N3.12`; knob 1/2/3 tune VFO A / VFO B / RIT-XIT through the KPOD's rocker handler.
 - `kpodudevworker.{cpp,h}` — Linux-only udev poll loop for KPOD hotplug detection, wired to `QThread::started` and run until `stop()`.
 - `kpodudevmatch.h` — header-only, platform-neutral: whether a udev event is the KPOD, from the event's `PRODUCT` (fallback `ID_VENDOR_ID`/`ID_MODEL_ID`) properties. Sysattrs are gone by the time a `remove` arrives, which is why an unplug was never reported. Covered by `test_usbdevicelifecycle`.
 - `halikeyv14worker.{cpp,h}` — V1.4 hardware-protocol worker (serial). Opens the port natively, powers the contacts with DTR/RTS, and polls the lines every 1 ms on every platform on a drift-free 1 ms grid (a periodic high-resolution waitable timer on Windows, absolute-deadline sleeps through `SteadyKeyerClock::sleepUntil` elsewhere) through `SerialLinePoller`. Dit = CTS, dah = DCD ∥ DSR. Emits `paddleChanged(dah, asserted, delta)`. Polling, not edge waits, on every OS: a blocking wait can't time a straight key's 20 ms debounce, and FTDI drivers on Windows miss isolated modem-line events.
@@ -46,7 +49,7 @@ run with no event loop). Count both with:
 rg -c 'new QThread|QThread::create' src --glob '*.cpp'
 ```
 
-In this directory: `kpoddevice`, `kpodhidworker`, `kpodplusdevice` ×2, `halikeydevice` and
+In this directory: `kpoddevice`, `kpodhidworker`, `kpodplusdevice` ×2, `miraboxn3device`, `halikeydevice` and
 `halikeyportscan` and `mididevicewatcher` (macOS). In `hardwarecontroller.cpp`: the keyer (`QThread::create`) and the sidetone thread.
 The rest are in `audiocontroller.cpp`, `connectioncontroller.cpp`, `dxclustercontroller.cpp` and
 `tcicontroller.cpp`.

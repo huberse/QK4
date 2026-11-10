@@ -437,6 +437,14 @@ void MacroDialog::populateItems() {
         {MacroIds::KbdF12, "Keyboard-F12"},
     };
 
+    // Mirabox N3: six LCD keys, three small buttons, three knob pushes.
+    for (int i = 1; i <= 6; ++i)
+        macroSlots.append({MacroIds::n3Button(i), QStringLiteral("N3 Key %1").arg(i)});
+    for (int i = 7; i <= 9; ++i)
+        macroSlots.append({MacroIds::n3Button(i), QStringLiteral("N3 Button %1").arg(i - 6)});
+    for (int i = 10; i <= 12; ++i)
+        macroSlots.append({MacroIds::n3Button(i), QStringLiteral("N3 Knob %1 Push").arg(i - 9)});
+
     auto settings = RadioSettings::instance();
 
     for (const auto &slot : macroSlots) {

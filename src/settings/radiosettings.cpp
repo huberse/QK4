@@ -237,6 +237,18 @@ void RadioSettings::setKpodEnabled(bool enabled) {
     }
 }
 
+bool RadioSettings::miraboxN3Enabled() const {
+    return m_miraboxN3Enabled;
+}
+
+void RadioSettings::setMiraboxN3Enabled(bool enabled) {
+    if (m_miraboxN3Enabled != enabled) {
+        m_miraboxN3Enabled = enabled;
+        save();
+        emit miraboxN3EnabledChanged(enabled);
+    }
+}
+
 QString RadioSettings::kpa1500Host() const {
     return m_kpa1500Host;
 }
@@ -952,6 +964,7 @@ void RadioSettings::load() {
 
     m_lastSelectedIndex = m_settings.value("lastSelectedIndex", -1).toInt();
     m_kpodEnabled = m_settings.value("kpodEnabled", false).toBool();
+    m_miraboxN3Enabled = m_settings.value("miraboxN3Enabled", false).toBool();
 
     // KPA1500 settings
     m_kpa1500Host = m_settings.value("kpa1500/host", "").toString();
@@ -1097,6 +1110,7 @@ void RadioSettings::save() {
 
     m_settings.setValue("lastSelectedIndex", m_lastSelectedIndex);
     m_settings.setValue("kpodEnabled", m_kpodEnabled);
+    m_settings.setValue("miraboxN3Enabled", m_miraboxN3Enabled);
 
     // KPA1500 settings
     m_settings.setValue("kpa1500/host", m_kpa1500Host);

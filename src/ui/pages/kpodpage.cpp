@@ -2,6 +2,7 @@
 #include "ui/styling/k4styles.h"
 #include "hardware/kpoddevice.h"
 #include "hardware/kpodplusdevice.h"
+#include "hardware/miraboxn3device.h"
 #include "settings/radiosettings.h"
 #include "ui/pages/optionspagelayout.h"
 #include <QFormLayout>
@@ -9,8 +10,9 @@
 #include <QStringList>
 #include <QVector>
 
-KpodPage::KpodPage(KpodDevice *kpodDevice, KpodPlusDevice *kpodPlusDevice, QWidget *parent)
-    : QWidget(parent), m_kpodDevice(kpodDevice), m_kpodPlusDevice(kpodPlusDevice) {
+KpodPage::KpodPage(KpodDevice *kpodDevice, KpodPlusDevice *kpodPlusDevice, MiraboxN3Device *miraboxN3Device,
+                   QWidget *parent)
+    : QWidget(parent), m_kpodDevice(kpodDevice), m_kpodPlusDevice(kpodPlusDevice), m_miraboxN3Device(miraboxN3Device) {
     auto *layout = OptionsPageLayout::createPage(this);
     OptionsPageLayout::addTitle(layout, this, "K-Pod");
     m_form = OptionsPageLayout::addForm(layout);
@@ -53,6 +55,8 @@ KpodPage::KpodPage(KpodDevice *kpodDevice, KpodPlusDevice *kpodPlusDevice, QWidg
     // KPOD+ keyer configuration section (hidden until KPOD+ detected)
     setupKeyerConfigSection(m_form);
 
+    setupMiraboxSection(m_form);
+
     layout->addStretch();
 
     if (m_kpodDevice) {
@@ -89,8 +93,61 @@ void KpodPage::setupKeyerConfigSection(QFormLayout *form) {
     form->setRowVisible(m_encodeModeCombo, false);
 }
 
+void KpodPage::setupMiraboxSection(QFormLayout *form) {
+    OptionsPageLayout::addSection(form, this, "Mirabox N3");
+
+    m_n3StatusLabel = new QLabel("Not Detected", this);
+    m_n3StatusLabel->setStyleSheet(K4Styles::Dialog::statusLabelByState());
+    OptionsPageLayout::addRow(form, this, "Status", m_n3StatusLabel);
+
+    // A preference, settable with or without the device plugged in - as the K-Pod checkbox.
+    m_n3EnableCheckbox = new QCheckBox("Enable Mirabox N3", this);
+    m_n3EnableCheckbox->setStyleSheet(K4Styles::Dialog::checkBox());
+    m_n3EnableCheckbox->setChecked(RadioSettings::instance()->miraboxN3Enabled());
+    connect(m_n3EnableCheckbox, &QCheckBox::toggled, this,
+            [](bool checked) { RadioSettings::instance()->setMiraboxN3Enabled(checked); });
+    connect(RadioSettings::instance(), &RadioSettings::miraboxN3EnabledChanged, this, [this](bool enabled) {
+        m_n3EnableCheckbox->setChecked(enabled);
+        updateMiraboxStatus();
+    });
+    form->addRow(QString(), m_n3EnableCheckbox);
+
+    m_n3HelpLabel = OptionsPageLayout::addFieldHelp(
+        form, this,
+        "Knob 1 tunes VFO A, knob 2 VFO B, knob 3 RIT/XIT. Keys, buttons and knob pushes run the "
+        "N3 macros; keys 1-6 show the macro label.");
+
+    if (m_miraboxN3Device) {
+        connect(m_miraboxN3Device, &MiraboxN3Device::deviceInfoReady, this, &KpodPage::updateMiraboxStatus);
+        connect(m_miraboxN3Device, &MiraboxN3Device::deviceConnected, this, &KpodPage::updateMiraboxStatus);
+        connect(m_miraboxN3Device, &MiraboxN3Device::deviceDisconnected, this, &KpodPage::updateMiraboxStatus);
+    }
+    updateMiraboxStatus();
+}
+
+void KpodPage::updateMiraboxStatus() {
+    if (!m_n3StatusLabel)
+        return;
+    const bool detected = m_miraboxN3Device && m_miraboxN3Device->isDetected();
+    const bool open = m_miraboxN3Device && m_miraboxN3Device->isOpen();
+    const bool enabled = RadioSettings::instance()->miraboxN3Enabled();
+    m_n3StatusLabel->setText(open ? "Active" : detected ? "Detected" : "Not Detected");
+    K4Styles::setStyleState(m_n3StatusLabel, K4Styles::StateProperty,
+                            detected ? QString(K4Styles::Dialog::StatusOk) : QString());
+    if (detected && !enabled)
+        m_n3HelpLabel->setText("Mirabox N3 connected but switched off. Close the Mirabox Stream Dock software "
+                               "before switching it on: only one program can use the device.");
+    else if (!detected)
+        m_n3HelpLabel->setText(enabled ? "No Mirabox N3 connected. It will be used as soon as one is plugged in."
+                                       : "No Mirabox N3 connected, and N3 support is switched off.");
+    else
+        m_n3HelpLabel->setText("Knob 1 tunes VFO A, knob 2 VFO B, knob 3 RIT/XIT. Keys, buttons and knob pushes "
+                               "run the N3 macros (Macros dialog); keys 1-6 show the macro label.");
+}
+
 void KpodPage::refresh() {
     updateKpodStatus();
+    updateMiraboxStatus();
 }
 
 void KpodPage::updateKpodStatus() {

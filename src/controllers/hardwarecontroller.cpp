@@ -9,6 +9,9 @@
 #include "hardware/paddlekeyer.h"
 #include "hardware/kpoddevice.h"
 #include "hardware/kpodplusdevice.h"
+#include "hardware/miraboxn3device.h"
+#include "hardware/miraboxn3protocol.h"
+#include "utils/macroids.h"
 #include "hardware/mididevicewatcher.h"
 #include "models/radiostate.h"
 #include "network/catframes.h"
@@ -127,6 +130,35 @@ HardwareController::HardwareController(RadioState *radioState, ConnectionControl
     connect(m_kpodPlusDevice, &KpodPlusDevice::deviceConnected, this,
             [this]() { applyKpodPlus(UsbDeviceLifecycle::Event::Opened); });
     // The enable handler is shared with the KPOD above — one checkbox, both devices.
+
+    // =========================================================================
+    // Mirabox N3 stream controller
+    // =========================================================================
+    // Buttons dispatch macros N3.1..N3.12 (MacroController). The knobs tune like the KPOD with its
+    // rocker held in one position each: knob 1 VFO A, knob 2 VFO B, knob 3 RIT/XIT - the same
+    // handler, so VFO lock, tuning step and the wait for the first frequency apply unchanged.
+    m_miraboxN3Device = new MiraboxN3Device(this);
+    connect(m_miraboxN3Device, &MiraboxN3Device::buttonPressed, this,
+            [this](int button) { emit macroRequested(MacroIds::n3Button(button)); });
+    connect(m_miraboxN3Device, &MiraboxN3Device::knobRotated, this, [this](int knob, int ticks) {
+        if (!m_connectionController->isConnected())
+            return;
+        // Rocker encoding of onKpodEncoderRotatedWithRocker: 2 = VFO A, 0 = VFO B, 1 = RIT/XIT.
+        const int rocker = (knob == 1) ? 2 : (knob == 2) ? 0 : 1;
+        onKpodEncoderRotatedWithRocker(ticks, rocker);
+    });
+    connect(m_miraboxN3Device, &MiraboxN3Device::pollError, this, &HardwareController::onKpodPollError);
+    connect(m_miraboxN3Device, &MiraboxN3Device::deviceInfoReady, this, [this]() {
+        applyMiraboxN3(m_miraboxN3Device->isDetected() ? UsbDeviceLifecycle::Event::Detected
+                                                       : UsbDeviceLifecycle::Event::Lost);
+    });
+    connect(m_miraboxN3Device, &MiraboxN3Device::deviceConnected, this,
+            [this]() { applyMiraboxN3(UsbDeviceLifecycle::Event::Opened); });
+    m_miraboxN3State.enabled = RadioSettings::instance()->miraboxN3Enabled();
+    connect(RadioSettings::instance(), &RadioSettings::miraboxN3EnabledChanged, this, [this](bool enabled) {
+        applyMiraboxN3(enabled ? UsbDeviceLifecycle::Event::Enabled : UsbDeviceLifecycle::Event::Disabled);
+    });
+    connect(RadioSettings::instance(), &RadioSettings::macrosChanged, this, &HardwareController::pushMiraboxN3Labels);
 
     // =========================================================================
     // HaliKey CW paddle device — device type injected here so HalikeyDevice
@@ -284,6 +316,34 @@ void HardwareController::applyKpodPlus(UsbDeviceLifecycle::Event event) {
         emit hardwareError(QStringLiteral("KPOD+ disconnected — CW keying has returned to QK4's keyer."));
 }
 
+void HardwareController::applyMiraboxN3(UsbDeviceLifecycle::Event event) {
+    const UsbDeviceLifecycle::Effects e = UsbDeviceLifecycle::apply(m_miraboxN3State, event);
+    if (e.reportArrived)
+        qCInfo(lcMirabox) << "Mirabox N3 available";
+    if (e.reportRemoved)
+        qCInfo(lcMirabox) << "Mirabox N3 no longer available";
+    if (e.notifyOpenFailed)
+        qCWarning(lcMirabox) << "Mirabox N3 could not be opened";
+    if (e.open) {
+        // Labels first: both calls queue to the same worker thread, which draws them on open.
+        pushMiraboxN3Labels();
+        m_miraboxN3Device->startPolling();
+    }
+    if (e.close)
+        m_miraboxN3Device->stopPolling();
+    if (e.notifyConnected)
+        emit hardwareError(QStringLiteral("Mirabox N3 connected."));
+    if (e.notifyDisconnected)
+        emit hardwareError(QStringLiteral("Mirabox N3 disconnected — its keys and knobs have stopped."));
+}
+
+void HardwareController::pushMiraboxN3Labels() {
+    QStringList labels;
+    for (int key = 1; key <= MiraboxN3Protocol::kLcdKeys; ++key)
+        labels << RadioSettings::instance()->macro(MacroIds::n3Button(key)).label;
+    m_miraboxN3Device->setKeyLabels(labels);
+}
+
 QString HardwareController::halikeyName() const {
     // RadioSettings is the only place that knows which transport is configured; HalikeyDevice is
     // constructed from the same value. Named for the operator, matching the Options dropdown, so a
@@ -359,6 +419,7 @@ void HardwareController::shutdownDevices() {
     // left to tell that a device disconnected.
     applyKpodPlus(UsbDeviceLifecycle::Event::ShuttingDown);
     applyKpod(UsbDeviceLifecycle::Event::ShuttingDown);
+    applyMiraboxN3(UsbDeviceLifecycle::Event::ShuttingDown);
     // The KZ egress belongs to the connection, which is destroyed before this controller.
     m_kpodPlusDevice->setKeyerLink(nullptr);
 }

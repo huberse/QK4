@@ -31,6 +31,7 @@ Q_LOGGING_CATEGORY(lcHardware, "qk4.hardware", QtInfoMsg)
 Q_LOGGING_CATEGORY(lcKpod, "qk4.kpod", QtInfoMsg)
 Q_LOGGING_CATEGORY(lcKpodUdev, "qk4.kpod.udev", QtInfoMsg)
 Q_LOGGING_CATEGORY(lcKpodPlus, "qk4.kpod.plus", QtInfoMsg)
+Q_LOGGING_CATEGORY(lcMirabox, "qk4.mirabox", QtInfoMsg)
 
 Q_LOGGING_CATEGORY(lcCatServer, "qk4.catserver", QtInfoMsg)
 Q_LOGGING_CATEGORY(lcCatServerPush, "qk4.catserver.push", QtInfoMsg)
@@ -49,40 +50,11 @@ namespace Logging {
 
 const std::vector<CategoryFn> &allCategories() {
     static const std::vector<CategoryFn> categories{
-        lcApp,
-        lcUi,
-        lcUiMenu,
-        lcUiBandNav,
-        lcUiModePopup,
-        lcUiTextDecode,
-        lcUiMacro,
-        lcLink,
-        lcLinkTcp,
-        lcLinkDiscovery,
-        lcTxOwner,
-        lcCatTx,
-        lcCatRx,
-        lcAudio,
-        lcAudioRx,
-        lcAudioTx,
-        lcAudioSidetone,
-        lcCwKeyer,
-        lcCwHalikey,
-        lcCwMidi,
-        lcHardware,
-        lcKpod,
-        lcKpodUdev,
-        lcKpodPlus,
-        lcCatServer,
-        lcCatServerPush,
-        lcTci,
-        lcTciWs,
-        lcDxCluster,
-        lcKpa1500,
-        lcKpa1500Ui,
-        lcSpectrum,
-        lcSpectrumRender,
-        lcSpectrumMiniPan,
+        lcApp,          lcUi,        lcUiMenu,        lcUiBandNav, lcUiModePopup, lcUiTextDecode,   lcUiMacro,
+        lcLink,         lcLinkTcp,   lcLinkDiscovery, lcTxOwner,   lcCatTx,       lcCatRx,          lcAudio,
+        lcAudioRx,      lcAudioTx,   lcAudioSidetone, lcCwKeyer,   lcCwHalikey,   lcCwMidi,         lcHardware,
+        lcKpod,         lcKpodUdev,  lcKpodPlus,      lcMirabox,   lcCatServer,   lcCatServerPush,  lcTci,
+        lcTciWs,        lcDxCluster, lcKpa1500,       lcKpa1500Ui, lcSpectrum,    lcSpectrumRender, lcSpectrumMiniPan,
         lcSpectrumDiag,
     };
     return categories;

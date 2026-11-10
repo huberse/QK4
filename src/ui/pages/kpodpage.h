@@ -9,6 +9,7 @@
 class QFormLayout;
 class KpodDevice;
 class KpodPlusDevice;
+class MiraboxN3Device;
 
 /**
  * @brief OptionsDialog "K-Pod" tab. Toggles KPOD USB tuning-knob integration and shows
@@ -19,16 +20,24 @@ class KpodPage : public QWidget {
     Q_OBJECT
 
 public:
-    explicit KpodPage(KpodDevice *kpodDevice, KpodPlusDevice *kpodPlusDevice, QWidget *parent = nullptr);
+    explicit KpodPage(KpodDevice *kpodDevice, KpodPlusDevice *kpodPlusDevice, MiraboxN3Device *miraboxN3Device,
+                      QWidget *parent = nullptr);
 
     void refresh();
 
 private:
     void updateKpodStatus();
     void setupKeyerConfigSection(QFormLayout *form);
+    void setupMiraboxSection(QFormLayout *form);
+    void updateMiraboxStatus();
 
     KpodDevice *m_kpodDevice;
     KpodPlusDevice *m_kpodPlusDevice;
+    MiraboxN3Device *m_miraboxN3Device;
+
+    QCheckBox *m_n3EnableCheckbox = nullptr;
+    QLabel *m_n3StatusLabel = nullptr;
+    QLabel *m_n3HelpLabel = nullptr;
 
     QCheckBox *m_kpodEnableCheckbox = nullptr;
     QLabel *m_kpodStatusLabel = nullptr;

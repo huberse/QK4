@@ -285,6 +285,8 @@ set(SOURCES
     src/hardware/kpodhidworker.cpp
     src/hardware/kpodplusdevice.cpp
     src/hardware/kpodplususbworker.cpp
+    src/hardware/miraboxn3device.cpp
+    src/hardware/miraboxn3worker.cpp
     src/hardware/halikeydevice.cpp
     src/hardware/halikeyworkerbase.cpp
     src/hardware/halikeyv14worker.cpp
@@ -455,6 +457,9 @@ set(HEADERS
     src/hardware/kpodhidworker.h
     src/hardware/kpodplusdevice.h
     src/hardware/kpodplususbworker.h
+    src/hardware/miraboxn3device.h
+    src/hardware/miraboxn3worker.h
+    src/hardware/miraboxn3protocol.h
     src/hardware/halikeydevice.h
     src/hardware/halikeyworkerbase.h
     src/hardware/halikeyv14worker.h

@@ -134,7 +134,8 @@ void OptionsDialog::ensurePageCreated(int index) {
         page = m_cwKeyerPage;
         break;
     case PageKpod:
-        m_kpodPage = new KpodPage(m_hardwareController->kpodDevice(), m_hardwareController->kpodPlusDevice(), this);
+        m_kpodPage = new KpodPage(m_hardwareController->kpodDevice(), m_hardwareController->kpodPlusDevice(),
+                                  m_hardwareController->miraboxN3Device(), this);
         page = m_kpodPage;
         break;
     case PageKpa1500:

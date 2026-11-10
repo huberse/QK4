@@ -92,6 +92,7 @@ category that no rule or Options switch can address. The same test enforces it.
 | `qk4.kpod` | `lcKpod` | KPOD (hidapi) | `hw.kpod` |
 | `qk4.kpod.udev` | `lcKpodUdev` | KPOD hotplug on Linux | `hw.kpod.udev` |
 | `qk4.kpod.plus` | `lcKpodPlus` | KPOD+ (libusb); its EP02 batches appear under `qk4.cat.tx` | `hw.kpodplus` |
+| `qk4.mirabox` | `lcMirabox` | Mirabox N3 stream controller (hidapi); unknown key codes at info | `hw.mirabox` |
 | `qk4.catserver` | `lcCatServer` | CAT server for WSJT-X and friends | `net.cat` |
 | `qk4.catserver.push` | `lcCatServerPush` | CAT server auto-information push | `net.catpush` |
 | `qk4.tci` | `lcTci` | TCI server | `net.tci` |

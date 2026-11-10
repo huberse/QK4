@@ -562,6 +562,12 @@ target_include_directories(test_usbdevicelifecycle PRIVATE ${CMAKE_SOURCE_DIR}/s
 target_link_libraries(test_usbdevicelifecycle Qt6::Core Qt6::Test)
 add_test(NAME UsbDeviceLifecycleTests COMMAND test_usbdevicelifecycle)
 
+# Mirabox N3 wire protocol: input decoder and output report builders — pure logic, no device.
+add_executable(test_miraboxn3protocol test_miraboxn3protocol.cpp)
+target_include_directories(test_miraboxn3protocol PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_miraboxn3protocol Qt6::Core Qt6::Test)
+add_test(NAME MiraboxN3ProtocolTests COMMAND test_miraboxn3protocol)
+
 # RAW TX audio wire format (EM0/EM1) — pure logic, no audio device or opus linkage needed.
 add_executable(test_rawaudioformat test_rawaudioformat.cpp)
 target_include_directories(test_rawaudioformat PRIVATE ${CMAKE_SOURCE_DIR}/src)

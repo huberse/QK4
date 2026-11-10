@@ -46,6 +46,13 @@ const QString Kpod7H = "K-pod.7H";
 const QString Kpod8T = "K-pod.8T";
 const QString Kpod8H = "K-pod.8H";
 
+// Mirabox N3 buttons: 1-6 the LCD keys (row-major from top left), 7-9 the small buttons below them,
+// 10-12 pushing knob 1-3. Keys 1-6 show the macro's label.
+const QString N3Prefix = "N3.";
+inline QString n3Button(int button) {
+    return N3Prefix + QString::number(button);
+}
+
 // Keyboard Function Keys (F1-F12)
 const QString KbdF1 = "Keyboard-F1";
 const QString KbdF2 = "Keyboard-F2";

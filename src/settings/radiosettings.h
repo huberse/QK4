@@ -103,6 +103,10 @@ public:
     bool kpodEnabled() const;
     void setKpodEnabled(bool enabled);
 
+    // Mirabox N3 stream controller (6 LCD keys, 3 buttons, 3 knobs). Off by default.
+    bool miraboxN3Enabled() const;
+    void setMiraboxN3Enabled(bool enabled);
+
     // KPA1500 Amplifier settings
     QString kpa1500Host() const;
     void setKpa1500Host(const QString &host);
@@ -269,6 +273,7 @@ signals:
     void radiosChanged();
     void waterfallSpeedChanged(int seconds);
     void kpodEnabledChanged(bool enabled);
+    void miraboxN3EnabledChanged(bool enabled);
     void kpa1500EnabledChanged(bool enabled);
     void kpa1500SettingsChanged();
     void kpa1500PollIntervalChanged(int intervalMs);
@@ -304,6 +309,7 @@ private:
     QVector<RadioEntry> m_radios;
     int m_lastSelectedIndex;
     bool m_kpodEnabled;
+    bool m_miraboxN3Enabled = false;
 
     // KPA1500 settings
     QString m_kpa1500Host;
