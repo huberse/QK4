@@ -1,6 +1,7 @@
 #ifndef SIDECONTROLSCROLLCONTROLLER_H
 #define SIDECONTROLSCROLLCONTROLLER_H
 
+#include "utils/knobfunction.h"
 #include "utils/radioutils.h"
 
 #include <QObject>
@@ -24,6 +25,10 @@ class SideControlScrollController : public QObject {
 public:
     SideControlScrollController(RadioState *radioState, ConnectionController *connection, SideControlPanel *panel,
                                 QObject *parent = nullptr);
+
+    /// Step one side-panel control by `delta` scroll ticks. Returns false for a function this
+    /// controller does not own (VFO tuning, RIT/XIT, AF, None).
+    bool adjust(KnobFunction function, int delta);
 
 private:
     // Shared between highCutChanged and lowCutChanged. When adjustHi is true,

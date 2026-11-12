@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "hardware/usbdevicelifecycle.h"
+#include "utils/knobfunction.h"
 #include <QThread>
 
 class KpodDevice;
@@ -90,6 +91,8 @@ private:
 
     /// Send the labels of macros N3.1..N3.6 to the N3's LCD keys.
     void pushMiraboxN3Labels();
+    /// The function the operator assigned to N3 knob 1..3, or its default.
+    static KnobFunction miraboxN3KnobFunction(int knob);
 
     UsbDeviceLifecycle::State m_kpodState;
     UsbDeviceLifecycle::State m_kpodPlusState;
@@ -103,6 +106,10 @@ public:
 signals:
     // KPOD button press → MacroController::executeMacro
     void macroRequested(const QString &functionId);
+
+    // A Mirabox N3 knob set to a function HardwareController does not tune itself (AF, RF gain,
+    // filter, power ...). MainWindow routes it to the side panel's handlers.
+    void knobAdjustRequested(KnobFunction function, int ticks);
 
     /// The KPOD+ is taking over CW keying, or giving it back.
     ///

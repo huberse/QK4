@@ -734,6 +734,16 @@ int SideControlPanel::subVolume() const {
     return m_subVolumeSlider ? m_subVolumeSlider->value() : 100;
 }
 
+void SideControlPanel::stepVolume(int delta) {
+    if (m_volumeSlider)
+        m_volumeSlider->setValue(m_volumeSlider->value() + delta); // QSlider clamps to its range
+}
+
+void SideControlPanel::stepSubVolume(int delta) {
+    if (m_subVolumeSlider)
+        m_subVolumeSlider->setValue(m_subVolumeSlider->value() + delta);
+}
+
 void SideControlPanel::updateMonitorLevel(int mode, int level) {
     // Only update if this is the current mode
     if (m_monOverlay && m_monOverlay->mode() == mode) {

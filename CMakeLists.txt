@@ -391,6 +391,7 @@ set(HEADERS
     src/models/radiostate/xvtrbandstate.h
     src/models/menumodel.h
     src/utils/macroids.h
+    src/utils/knobfunction.h
     src/ui/dialogs/radiomanagerdialog.h
     src/ui/widgets/dualcontrolbutton.h
     src/ui/widgets/sidecontrolpanel.h

@@ -106,6 +106,10 @@ public:
     // Mirabox N3 stream controller (6 LCD keys, 3 buttons, 3 knobs). Off by default.
     bool miraboxN3Enabled() const;
     void setMiraboxN3Enabled(bool enabled);
+    // What knob 1..3 adjusts, as a KnobFunctions key (utils/knobfunction.h). Empty = the default
+    // (VFO A, VFO B, RIT/XIT).
+    QString miraboxN3KnobFunction(int knob) const;
+    void setMiraboxN3KnobFunction(int knob, const QString &key);
 
     // KPA1500 Amplifier settings
     QString kpa1500Host() const;
@@ -310,6 +314,7 @@ private:
     int m_lastSelectedIndex;
     bool m_kpodEnabled;
     bool m_miraboxN3Enabled = false;
+    QString m_miraboxN3Knobs[3];
 
     // KPA1500 settings
     QString m_kpa1500Host;

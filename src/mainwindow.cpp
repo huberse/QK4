@@ -164,7 +164,23 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), m_radioState(new 
     // SideControlScrollController owns all of SideControlPanel's scroll-handler
     // protocol logic (WPM, pitch, mic, comp, power QRP/QRO, delay, BW/HI/LO/SHIFT,
     // RF gain, squelch).
-    new SideControlScrollController(m_radioState, m_connectionController, m_sideControlPanel, this);
+    m_sideControlScrollController =
+        new SideControlScrollController(m_radioState, m_connectionController, m_sideControlPanel, this);
+
+    // Mirabox N3 knobs set to a K4 front-panel control other than VFO/RIT tuning: AF moves QK4's
+    // own volume sliders (the listening level of the streamed audio), the rest step through the
+    // same handlers as the side panel's scroll wheel.
+    connect(m_hardwareController, &HardwareController::knobAdjustRequested, this,
+            [this](KnobFunction function, int ticks) {
+                // WHY 2 per detent: a 0-100 slider at 1 per click takes a hundred clicks end to end.
+                constexpr int kVolumeStepPerTick = 2;
+                if (function == KnobFunction::MainAf)
+                    m_sideControlPanel->stepVolume(ticks * kVolumeStepPerTick);
+                else if (function == KnobFunction::SubAf)
+                    m_sideControlPanel->stepSubVolume(ticks * kVolumeStepPerTick);
+                else
+                    m_sideControlScrollController->adjust(function, ticks);
+            });
 
     // Filter indicator widgets observe RadioState directly (PATTERNS.md Direct Observation).
     m_filterAWidget->observe(m_radioState, FilterIndicatorWidget::Vfo::A);

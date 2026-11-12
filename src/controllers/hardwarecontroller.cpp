@@ -141,11 +141,21 @@ HardwareController::HardwareController(RadioState *radioState, ConnectionControl
     connect(m_miraboxN3Device, &MiraboxN3Device::buttonPressed, this,
             [this](int button) { emit macroRequested(MacroIds::n3Button(button)); });
     connect(m_miraboxN3Device, &MiraboxN3Device::knobRotated, this, [this](int knob, int ticks) {
-        if (!m_connectionController->isConnected())
-            return;
+        const KnobFunction function = miraboxN3KnobFunction(knob);
         // Rocker encoding of onKpodEncoderRotatedWithRocker: 2 = VFO A, 0 = VFO B, 1 = RIT/XIT.
-        const int rocker = (knob == 1) ? 2 : (knob == 2) ? 0 : 1;
-        onKpodEncoderRotatedWithRocker(ticks, rocker);
+        int rocker = -1;
+        if (function == KnobFunction::VfoA)
+            rocker = 2;
+        else if (function == KnobFunction::VfoB)
+            rocker = 0;
+        else if (function == KnobFunction::RitXit)
+            rocker = 1;
+        if (rocker >= 0) {
+            if (m_connectionController->isConnected())
+                onKpodEncoderRotatedWithRocker(ticks, rocker);
+        } else if (function != KnobFunction::None) {
+            emit knobAdjustRequested(function, ticks);
+        }
     });
     connect(m_miraboxN3Device, &MiraboxN3Device::pollError, this, &HardwareController::onKpodPollError);
     connect(m_miraboxN3Device, &MiraboxN3Device::deviceInfoReady, this, [this]() {
@@ -335,6 +345,13 @@ void HardwareController::applyMiraboxN3(UsbDeviceLifecycle::Event event) {
         emit hardwareError(QStringLiteral("Mirabox N3 connected."));
     if (e.notifyDisconnected)
         emit hardwareError(QStringLiteral("Mirabox N3 disconnected — its keys and knobs have stopped."));
+}
+
+KnobFunction HardwareController::miraboxN3KnobFunction(int knob) {
+    static const KnobFunction defaults[3] = {KnobFunction::VfoA, KnobFunction::VfoB, KnobFunction::RitXit};
+    if (knob < 1 || knob > 3)
+        return KnobFunction::None;
+    return KnobFunctions::fromKey(RadioSettings::instance()->miraboxN3KnobFunction(knob), defaults[knob - 1]);
 }
 
 void HardwareController::pushMiraboxN3Labels() {

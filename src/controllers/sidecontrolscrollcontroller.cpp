@@ -26,73 +26,104 @@ QString ifShiftSet(bool subRx, int centreDah) {
 SideControlScrollController::SideControlScrollController(RadioState *radioState, ConnectionController *connection,
                                                          SideControlPanel *panel, QObject *parent)
     : QObject(parent), m_radioState(radioState), m_connection(connection), m_panel(panel) {
-    // Connect side control panel scroll signals to CAT commands.
-    // After sending CAT, update RadioState optimistically — the K4 doesn't
-    // echo most of these SET commands.
+    // Every side panel knob routes through adjust(), which the Mirabox N3's knobs call too, so a
+    // knob and a scroll wheel can never step the same control differently.
+    connect(m_panel, &SideControlPanel::wpmChanged, this,
+            [this](int delta) { adjust(KnobFunction::KeyerSpeed, delta); });
+    connect(m_panel, &SideControlPanel::pitchChanged, this,
+            [this](int delta) { adjust(KnobFunction::CwPitch, delta); });
+    connect(m_panel, &SideControlPanel::micGainChanged, this,
+            [this](int delta) { adjust(KnobFunction::MicGain, delta); });
+    connect(m_panel, &SideControlPanel::compressionChanged, this,
+            [this](int delta) { adjust(KnobFunction::Compression, delta); });
+    connect(m_panel, &SideControlPanel::powerChanged, this, [this](int delta) { adjust(KnobFunction::Power, delta); });
+    connect(m_panel, &SideControlPanel::delayChanged, this, [this](int delta) { adjust(KnobFunction::Delay, delta); });
+    connect(m_panel, &SideControlPanel::bandwidthChanged, this,
+            [this](int delta) { adjust(KnobFunction::Bandwidth, delta); });
+    connect(m_panel, &SideControlPanel::highCutChanged, this,
+            [this](int delta) { adjust(KnobFunction::HighCut, delta); });
+    connect(m_panel, &SideControlPanel::shiftChanged, this, [this](int delta) { adjust(KnobFunction::Shift, delta); });
+    connect(m_panel, &SideControlPanel::lowCutChanged, this,
+            [this](int delta) { adjust(KnobFunction::LowCut, delta); });
+    connect(m_panel, &SideControlPanel::mainRfGainChanged, this,
+            [this](int delta) { adjust(KnobFunction::MainRfGain, delta); });
+    connect(m_panel, &SideControlPanel::mainSquelchChanged, this,
+            [this](int delta) { adjust(KnobFunction::MainSquelch, delta); });
+    connect(m_panel, &SideControlPanel::subRfGainChanged, this,
+            [this](int delta) { adjust(KnobFunction::SubRfGain, delta); });
+    connect(m_panel, &SideControlPanel::subSquelchChanged, this,
+            [this](int delta) { adjust(KnobFunction::SubSquelch, delta); });
+}
 
-    // Group 1: WPM/PTCH (CW mode) and MIC/CMP (Voice mode)
-    // Every knob steps from the value the radio reported, within the K4's own limits
+bool SideControlScrollController::adjust(KnobFunction function, int delta) {
+    // After sending CAT, update RadioState optimistically - the K4 does not echo most of these
+    // SET commands. Every knob steps from the value the radio reported, within the K4's own limits
     // (RadioUtils), and sends nothing until the radio has reported it.
-    connect(m_panel, &SideControlPanel::wpmChanged, this, [this](int delta) {
+    //
+    // RF Gain uses RG-nn; where nn is 00-60 (-0 to -60 dB attenuation): scroll up = less
+    // attenuation = a smaller value. BW/HI and SHFT/LO adjust VFO B while B SET is on.
+    switch (function) {
+    case KnobFunction::KeyerSpeed: {
         const auto wpm = RadioUtils::nextKeyerSpeed(m_radioState->keyerSpeed(), delta);
         if (!wpm)
-            return;
+            return true;
         m_connection->sendCAT(QString::fromLatin1(CatFrames::keyerSpeed(*wpm)));
         m_radioState->setKeyerSpeed(*wpm);
-    });
-    connect(m_panel, &SideControlPanel::pitchChanged, this, [this](int delta) {
+        return true;
+    }
+    case KnobFunction::CwPitch: {
         const auto pitchHz = RadioUtils::nextCwPitch(m_radioState->cwPitch(), delta);
         if (!pitchHz)
-            return;
+            return true;
         m_connection->sendCAT(QString("CW%1;").arg(*pitchHz / RadioUtils::CW_PITCH_STEP_HZ, 2, 10, QChar('0')));
         m_radioState->setCwPitch(*pitchHz);
-    });
-    connect(m_panel, &SideControlPanel::micGainChanged, this, [this](int delta) {
+        return true;
+    }
+    case KnobFunction::MicGain: {
         const auto gain = RadioUtils::stepWithin(m_radioState->micGain(), delta, 0, RadioUtils::MIC_GAIN_MAX);
         if (!gain)
-            return;
+            return true;
         m_connection->sendCAT(QString("MG%1;").arg(*gain, 3, 10, QChar('0')));
         m_radioState->setMicGain(*gain);
-    });
-    connect(m_panel, &SideControlPanel::compressionChanged, this, [this](int delta) {
+        return true;
+    }
+    case KnobFunction::Compression: {
         const auto comp = RadioUtils::stepWithin(m_radioState->compression(), delta, 0, RadioUtils::COMPRESSION_MAX);
         if (!comp)
-            return;
+            return true;
         m_connection->sendCAT(QString("CP%1;").arg(*comp, 3, 10, QChar('0')));
         m_radioState->setCompression(*comp);
-    });
-
-    // Group 1: PWR/DLY
-    connect(m_panel, &SideControlPanel::powerChanged, this, [this](int delta) {
+        return true;
+    }
+    case KnobFunction::Power: {
         const auto next = RadioUtils::nextRfPower(m_radioState->rfPower(), m_radioState->powerRange(), delta);
         if (!next)
-            return;
+            return true;
         m_connection->sendCAT(QString::fromLatin1(CatFrames::setRfPower(next->value, next->range)));
         m_radioState->setRfPower(next->value, next->range);
-    });
-
-    connect(m_panel, &SideControlPanel::delayChanged, this, [this](int delta) {
+        return true;
+    }
+    case KnobFunction::Delay: {
         const auto delay =
             RadioUtils::stepWithin(m_radioState->delayForCurrentMode(), delta, 0, RadioUtils::QSK_DELAY_MAX);
         if (!delay)
-            return;
+            return true;
         const int newDelay = *delay;
         m_radioState->setDelayForCurrentMode(newDelay);
 
         // SDxyzzz: x=0 keeps the delay (not full QSK), y is the mode class letter, zzz in 10 ms.
         const char modeLetter = RadioUtils::modeClassLetter(m_radioState->modeClass());
         m_connection->sendCAT(QString("SD0%1%2;").arg(QLatin1Char(modeLetter)).arg(newDelay, 3, 10, QChar('0')));
-    });
-
-    // Group 2: BW/HI and SHFT/LO. With B SET on they adjust VFO B, within VFO B's limits.
-    connect(m_panel, &SideControlPanel::bandwidthChanged, this, [this](int delta) {
+        return true;
+    }
+    case KnobFunction::Bandwidth: {
         const bool bSet = m_radioState->bSetEnabled();
         const RadioUtils::FilterEdgeLimits limits = targetFilterLimits();
         const auto bwHz =
             RadioUtils::stepWithin(bSet ? m_radioState->filterBandwidthB() : m_radioState->filterBandwidth(),
                                    delta * kBandwidthStepHz, limits.bwMinDah * 10, limits.bwMaxDah * 10);
         if (!bwHz)
-            return;
+            return true;
         const QByteArray bw = CatFrames::setFilterBandwidth(*bwHz);
         m_connection->sendCAT(QString::fromLatin1(bSet ? CatFrames::subRx(bw) : bw));
         if (bSet) {
@@ -100,62 +131,68 @@ SideControlScrollController::SideControlScrollController(RadioState *radioState,
         } else {
             m_radioState->setFilterBandwidth(*bwHz);
         }
-    });
-
-    connect(m_panel, &SideControlPanel::highCutChanged, this,
-            [this](int delta) { applyFilterEdgeChange(/*adjustHi=*/true, delta); });
-
-    connect(m_panel, &SideControlPanel::shiftChanged, this, [this](int delta) {
+        return true;
+    }
+    case KnobFunction::HighCut: {
+        applyFilterEdgeChange(/*adjustHi=*/true, delta);
+        return true;
+    }
+    case KnobFunction::Shift: {
         const bool bSet = m_radioState->bSetEnabled();
         const RadioUtils::FilterEdgeLimits limits = targetFilterLimits();
         if (limits.isLocked)
-            return;
+            return true;
         const auto shift = RadioUtils::stepWithin(bSet ? m_radioState->ifShiftB() : m_radioState->ifShift(), delta,
                                                   limits.isMinDah, limits.isMaxDah);
         if (!shift)
-            return;
+            return true;
         m_connection->sendCAT(ifShiftSet(bSet, *shift));
         if (bSet) {
             m_radioState->setIfShiftB(*shift);
         } else {
             m_radioState->setIfShift(*shift);
         }
-    });
-
-    connect(m_panel, &SideControlPanel::lowCutChanged, this,
-            [this](int delta) { applyFilterEdgeChange(/*adjustHi=*/false, delta); });
-
-    // Group 3: M.RF/M.SQL and S.RF/S.SQL
-    // RF Gain uses RG-nn; format where nn is 00-60 (representing -0 to -60 dB attenuation)
-    // Scroll up = less attenuation = decrease value, scroll down = more attenuation = increase value
-    connect(m_panel, &SideControlPanel::mainRfGainChanged, this, [this](int delta) {
+        return true;
+    }
+    case KnobFunction::LowCut: {
+        applyFilterEdgeChange(/*adjustHi=*/false, delta);
+        return true;
+    }
+    case KnobFunction::MainRfGain: {
         const auto gain = RadioUtils::stepWithin(m_radioState->rfGain(), -delta, 0, RadioUtils::RF_GAIN_MAX);
         if (!gain)
-            return;
+            return true;
         m_connection->sendCAT(QString::fromLatin1(CatFrames::rfGain(*gain)));
         m_radioState->setRfGain(*gain);
-    });
-    connect(m_panel, &SideControlPanel::mainSquelchChanged, this, [this](int delta) {
+        return true;
+    }
+    case KnobFunction::MainSquelch: {
         const auto sql = RadioUtils::nextSquelch(m_radioState->squelchLevel(), delta);
         if (!sql)
-            return;
+            return true;
         m_connection->sendCAT(QString::fromLatin1(CatFrames::squelch(*sql)));
         m_radioState->setSquelchLevel(*sql);
-    });
-    connect(m_panel, &SideControlPanel::subRfGainChanged, this, [this](int delta) {
+        return true;
+    }
+    case KnobFunction::SubRfGain: {
         const auto gain = RadioUtils::stepWithin(m_radioState->rfGainB(), -delta, 0, RadioUtils::RF_GAIN_MAX);
         if (!gain)
-            return;
+            return true;
         m_connection->sendCAT(QString::fromLatin1(CatFrames::subRx(CatFrames::rfGain(*gain))));
         m_radioState->setRfGainB(*gain);
-    });
-    connect(m_panel, &SideControlPanel::subSquelchChanged, this, [this](int delta) {
+        return true;
+    }
+    case KnobFunction::SubSquelch: {
         const auto sql = RadioUtils::nextSquelch(m_radioState->squelchLevelB(), delta);
         if (!sql)
-            return;
+            return true;
         m_connection->sendCAT(QString::fromLatin1(CatFrames::subRx(CatFrames::squelch(*sql))));
         m_radioState->setSquelchLevelB(*sql);
-    });
+        return true;
+    }
+    default:
+        return false;
+    }
 }
 
 RadioUtils::FilterEdgeLimits SideControlScrollController::targetFilterLimits() const {

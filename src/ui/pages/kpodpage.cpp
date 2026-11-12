@@ -4,6 +4,7 @@
 #include "hardware/kpodplusdevice.h"
 #include "hardware/miraboxn3device.h"
 #include "settings/radiosettings.h"
+#include "utils/knobfunction.h"
 #include "ui/pages/optionspagelayout.h"
 #include <QFormLayout>
 #include <QVBoxLayout>
@@ -112,10 +113,24 @@ void KpodPage::setupMiraboxSection(QFormLayout *form) {
     });
     form->addRow(QString(), m_n3EnableCheckbox);
 
-    m_n3HelpLabel = OptionsPageLayout::addFieldHelp(
-        form, this,
-        "Knob 1 tunes VFO A, knob 2 VFO B, knob 3 RIT/XIT. Keys, buttons and knob pushes run the "
-        "N3 macros; keys 1-6 show the macro label.");
+    m_n3HelpLabel = OptionsPageLayout::addFieldHelp(form, this, QString());
+
+    // One choice per knob, from the K4's own front-panel knobs. The defaults match an unset
+    // setting: VFO A, VFO B, RIT/XIT.
+    const KnobFunction defaults[3] = {KnobFunction::VfoA, KnobFunction::VfoB, KnobFunction::RitXit};
+    for (int knob = 1; knob <= 3; ++knob) {
+        auto *combo = new QComboBox(this);
+        combo->setStyleSheet(K4Styles::Dialog::comboBox());
+        for (const KnobFunctions::Entry &e : KnobFunctions::all())
+            combo->addItem(QString::fromLatin1(e.label), QString::fromLatin1(e.key));
+        const KnobFunction current =
+            KnobFunctions::fromKey(RadioSettings::instance()->miraboxN3KnobFunction(knob), defaults[knob - 1]);
+        combo->setCurrentIndex(combo->findData(KnobFunctions::key(current)));
+        connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [combo, knob](int) {
+            RadioSettings::instance()->setMiraboxN3KnobFunction(knob, combo->currentData().toString());
+        });
+        OptionsPageLayout::addRow(form, this, QStringLiteral("Knob %1").arg(knob), combo);
+    }
 
     if (m_miraboxN3Device) {
         connect(m_miraboxN3Device, &MiraboxN3Device::deviceInfoReady, this, &KpodPage::updateMiraboxStatus);
@@ -141,8 +156,8 @@ void KpodPage::updateMiraboxStatus() {
         m_n3HelpLabel->setText(enabled ? "No Mirabox N3 connected. It will be used as soon as one is plugged in."
                                        : "No Mirabox N3 connected, and N3 support is switched off.");
     else
-        m_n3HelpLabel->setText("Knob 1 tunes VFO A, knob 2 VFO B, knob 3 RIT/XIT. Keys, buttons and knob pushes "
-                               "run the N3 macros (Macros dialog); keys 1-6 show the macro label.");
+        m_n3HelpLabel->setText("Keys, buttons and knob pushes run the N3 macros (Macros dialog); keys 1-6 show "
+                               "the macro label. Choose what each knob adjusts below.");
 }
 
 void KpodPage::refresh() {

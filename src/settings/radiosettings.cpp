@@ -249,6 +249,17 @@ void RadioSettings::setMiraboxN3Enabled(bool enabled) {
     }
 }
 
+QString RadioSettings::miraboxN3KnobFunction(int knob) const {
+    return (knob >= 1 && knob <= 3) ? m_miraboxN3Knobs[knob - 1] : QString();
+}
+
+void RadioSettings::setMiraboxN3KnobFunction(int knob, const QString &key) {
+    if (knob < 1 || knob > 3 || m_miraboxN3Knobs[knob - 1] == key)
+        return;
+    m_miraboxN3Knobs[knob - 1] = key;
+    save();
+}
+
 QString RadioSettings::kpa1500Host() const {
     return m_kpa1500Host;
 }
@@ -965,6 +976,8 @@ void RadioSettings::load() {
     m_lastSelectedIndex = m_settings.value("lastSelectedIndex", -1).toInt();
     m_kpodEnabled = m_settings.value("kpodEnabled", false).toBool();
     m_miraboxN3Enabled = m_settings.value("miraboxN3Enabled", false).toBool();
+    for (int i = 0; i < 3; ++i)
+        m_miraboxN3Knobs[i] = m_settings.value(QStringLiteral("miraboxN3/knob%1").arg(i + 1)).toString();
 
     // KPA1500 settings
     m_kpa1500Host = m_settings.value("kpa1500/host", "").toString();
@@ -1111,6 +1124,8 @@ void RadioSettings::save() {
     m_settings.setValue("lastSelectedIndex", m_lastSelectedIndex);
     m_settings.setValue("kpodEnabled", m_kpodEnabled);
     m_settings.setValue("miraboxN3Enabled", m_miraboxN3Enabled);
+    for (int i = 0; i < 3; ++i)
+        m_settings.setValue(QStringLiteral("miraboxN3/knob%1").arg(i + 1), m_miraboxN3Knobs[i]);
 
     // KPA1500 settings
     m_settings.setValue("kpa1500/host", m_kpa1500Host);

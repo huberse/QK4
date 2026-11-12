@@ -76,6 +76,10 @@ public:
     // Volume control
     int volume() const;
     int subVolume() const;
+    // Move a volume slider by `delta` (0-100 scale) as if dragged: emits volumeChanged /
+    // subVolumeChanged, so audio, the saved setting and TCI follow. For external knobs.
+    void stepVolume(int delta);
+    void stepSubVolume(int delta);
 
     // Monitor level (MON overlay)
     void updateMonitorLevel(int mode, int level);
