@@ -32,6 +32,7 @@ MiraboxN3Device::MiraboxN3Device(QObject *parent) : QObject(parent) {
         m_open = false;
         emit deviceDisconnected();
     });
+    connect(m_worker, &MiraboxN3Worker::openFailed, this, &MiraboxN3Device::openFailed);
     connect(m_worker, &MiraboxN3Worker::buttonPressed, this, &MiraboxN3Device::buttonPressed);
     connect(m_worker, &MiraboxN3Worker::knobRotated, this, &MiraboxN3Device::knobRotated);
     connect(m_worker, &MiraboxN3Worker::pollError, this, &MiraboxN3Device::pollError);

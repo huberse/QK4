@@ -3,10 +3,11 @@ name: Mirabox N3 · Windows test build
 # Fork-only helper: builds the Windows ZIP of the Mirabox N3 branch through the same reusable
 # builder the release uses, so the N3 integration can be tried on real hardware without a local
 # toolchain. Download the artifact from the run's summary page.
+#
+# Manual only (Actions -> this workflow -> Run workflow, branch feat/mirabox-n3): changes are
+# reviewed first, then built on purpose, rather than on every push.
 
 on:
-  push:
-    branches: [feat/mirabox-n3]
   workflow_dispatch:
 
 permissions:

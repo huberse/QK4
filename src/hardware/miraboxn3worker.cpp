@@ -140,13 +140,13 @@ void MiraboxN3Worker::openDevice() {
     if (m_hid)
         return;
     if (m_info.devicePath.isEmpty()) {
-        emit pollError(QStringLiteral("Mirabox N3: no device path"));
+        emit openFailed();
         return;
     }
     m_hid = hid_open_path(m_info.devicePath.toUtf8().constData());
     if (!m_hid) {
         qCWarning(lcMirabox) << "hid_open_path failed for" << m_info.devicePath;
-        emit pollError(QStringLiteral("Failed to open Mirabox N3"));
+        emit openFailed();
         return;
     }
     hid_set_nonblocking(m_hid, 1);

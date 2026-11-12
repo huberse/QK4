@@ -77,6 +77,20 @@ inline KnobFunction fromKey(const QString &key, KnobFunction fallback) {
     return fallback;
 }
 
+/// What Mirabox N3 knob 1..3 does while its setting is unset: tune VFO A, VFO B, RIT/XIT.
+inline KnobFunction miraboxN3Default(int knob) {
+    switch (knob) {
+    case 1:
+        return KnobFunction::VfoA;
+    case 2:
+        return KnobFunction::VfoB;
+    case 3:
+        return KnobFunction::RitXit;
+    default:
+        return KnobFunction::None;
+    }
+}
+
 inline QString key(KnobFunction function) {
     for (const Entry &e : all()) {
         if (e.function == function)

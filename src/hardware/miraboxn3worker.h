@@ -49,6 +49,7 @@ signals:
     void deviceInfoReady(MiraboxN3Info info);
     void deviceArrived();
     void deviceRemoved();
+    void openFailed();
     void buttonPressed(int button);
     void knobRotated(int knob, int ticks);
     void pollError(QString message);

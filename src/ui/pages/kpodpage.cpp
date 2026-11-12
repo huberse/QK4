@@ -115,16 +115,14 @@ void KpodPage::setupMiraboxSection(QFormLayout *form) {
 
     m_n3HelpLabel = OptionsPageLayout::addFieldHelp(form, this, QString());
 
-    // One choice per knob, from the K4's own front-panel knobs. The defaults match an unset
-    // setting: VFO A, VFO B, RIT/XIT.
-    const KnobFunction defaults[3] = {KnobFunction::VfoA, KnobFunction::VfoB, KnobFunction::RitXit};
+    // One choice per knob, from the K4's own front-panel knobs; an unset knob shows its default.
     for (int knob = 1; knob <= 3; ++knob) {
         auto *combo = new QComboBox(this);
         combo->setStyleSheet(K4Styles::Dialog::comboBox());
         for (const KnobFunctions::Entry &e : KnobFunctions::all())
             combo->addItem(QString::fromLatin1(e.label), QString::fromLatin1(e.key));
-        const KnobFunction current =
-            KnobFunctions::fromKey(RadioSettings::instance()->miraboxN3KnobFunction(knob), defaults[knob - 1]);
+        const KnobFunction current = KnobFunctions::fromKey(RadioSettings::instance()->miraboxN3KnobFunction(knob),
+                                                            KnobFunctions::miraboxN3Default(knob));
         combo->setCurrentIndex(combo->findData(KnobFunctions::key(current)));
         connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [combo, knob](int) {
             RadioSettings::instance()->setMiraboxN3KnobFunction(knob, combo->currentData().toString());

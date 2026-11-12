@@ -134,9 +134,10 @@ HardwareController::HardwareController(RadioState *radioState, ConnectionControl
     // =========================================================================
     // Mirabox N3 stream controller
     // =========================================================================
-    // Buttons dispatch macros N3.1..N3.12 (MacroController). The knobs tune like the KPOD with its
-    // rocker held in one position each: knob 1 VFO A, knob 2 VFO B, knob 3 RIT/XIT - the same
-    // handler, so VFO lock, tuning step and the wait for the first frequency apply unchanged.
+    // Buttons dispatch macros N3.1..N3.12 (MacroController). Each knob does what the operator chose
+    // (utils/knobfunction.h; default VFO A, VFO B, RIT/XIT). VFO and RIT/XIT tune through the KPOD
+    // handler with its rocker held in one position, so VFO lock, tuning step and the wait for the
+    // first frequency apply unchanged; every other function goes to MainWindow.
     m_miraboxN3Device = new MiraboxN3Device(this);
     connect(m_miraboxN3Device, &MiraboxN3Device::buttonPressed, this,
             [this](int button) { emit macroRequested(MacroIds::n3Button(button)); });
@@ -164,6 +165,8 @@ HardwareController::HardwareController(RadioState *radioState, ConnectionControl
     });
     connect(m_miraboxN3Device, &MiraboxN3Device::deviceConnected, this,
             [this]() { applyMiraboxN3(UsbDeviceLifecycle::Event::Opened); });
+    connect(m_miraboxN3Device, &MiraboxN3Device::openFailed, this,
+            [this]() { applyMiraboxN3(UsbDeviceLifecycle::Event::OpenFailed); });
     m_miraboxN3State.enabled = RadioSettings::instance()->miraboxN3Enabled();
     connect(RadioSettings::instance(), &RadioSettings::miraboxN3EnabledChanged, this, [this](bool enabled) {
         applyMiraboxN3(enabled ? UsbDeviceLifecycle::Event::Enabled : UsbDeviceLifecycle::Event::Disabled);
@@ -332,8 +335,13 @@ void HardwareController::applyMiraboxN3(UsbDeviceLifecycle::Event event) {
         qCInfo(lcMirabox) << "Mirabox N3 available";
     if (e.reportRemoved)
         qCInfo(lcMirabox) << "Mirabox N3 no longer available";
-    if (e.notifyOpenFailed)
+    if (e.notifyOpenFailed) {
+        // Almost always the vendor's Stream Dock software holding the device. Switching N3 support
+        // off and on again in Options retries the open.
         qCWarning(lcMirabox) << "Mirabox N3 could not be opened";
+        emit hardwareError(QStringLiteral("Mirabox N3 could not be opened — close the Mirabox Stream Dock software, "
+                                          "then switch the N3 off and on in Options."));
+    }
     if (e.open) {
         // Labels first: both calls queue to the same worker thread, which draws them on open.
         pushMiraboxN3Labels();
@@ -348,10 +356,8 @@ void HardwareController::applyMiraboxN3(UsbDeviceLifecycle::Event event) {
 }
 
 KnobFunction HardwareController::miraboxN3KnobFunction(int knob) {
-    static const KnobFunction defaults[3] = {KnobFunction::VfoA, KnobFunction::VfoB, KnobFunction::RitXit};
-    if (knob < 1 || knob > 3)
-        return KnobFunction::None;
-    return KnobFunctions::fromKey(RadioSettings::instance()->miraboxN3KnobFunction(knob), defaults[knob - 1]);
+    return KnobFunctions::fromKey(RadioSettings::instance()->miraboxN3KnobFunction(knob),
+                                  KnobFunctions::miraboxN3Default(knob));
 }
 
 void HardwareController::pushMiraboxN3Labels() {

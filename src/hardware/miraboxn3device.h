@@ -29,6 +29,7 @@ signals:
     void deviceInfoReady();
     void deviceConnected();
     void deviceDisconnected();
+    void openFailed(); // e.g. the vendor's Stream Dock software holds the device
     void buttonPressed(int button);
     void knobRotated(int knob, int ticks);
     void pollError(const QString &error);
